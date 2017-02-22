@@ -1,0 +1,261 @@
+//this is for Logitech F310 controller
+
+#include "WPILib.h"
+//#include "AHRS.h"
+#include "Timer.h"
+#include "Math.h"
+#include "VictorSP.h"
+
+class Robot: public SampleRobot
+{
+	    VictorSP climber;
+	    VictorSP rightDrive;
+	    VictorSP intake;
+	    VictorSP shooter;
+	    VictorSP leftDrive;
+	    VictorSP beltDrive;
+	    VictorSP spinFeed;
+	    Joystick controller1, controller2;// only joystick
+	    //Encoder encoder1, encoder2;
+	    Timer t1, t2;
+	    float powerL, powerR;
+	    bool powerintake;
+	    //AHRS *ahrs;
+	    const double kUpdatePeriod = 0.005; // 5milliseconds / 0.005 seconds.
+
+
+public:
+    Robot():
+        climber(8),
+        rightDrive(0),
+        intake(2),
+        shooter(7),
+        leftDrive(1),
+        beltDrive(3),
+        spinFeed (4),
+        controller1(0),
+        controller2(1),
+        //encoder1(0, 1, false, Encoder::k2X),
+        //encoder2(2, 3, false, Encoder::k2X),
+        powerL(0.5),
+        powerR(0.5),
+        powerintake(0.5)
+        //ahrs(NULL)
+	{
+
+	}
+
+    /**
+     * Runs the motors with arcade steering.
+     */
+    void Autonomous()
+
+    {  //auto starts
+            t2.Reset();
+            t2.Start();
+
+            t1.Reset();
+            t1.Start();
+
+            while(IsAutonomous() && IsEnabled())
+            {
+                while(t2.Get()<1)
+                        {
+                             SmartDashboard::PutNumber("t2", t2.Get());  //puts "t2" to smartdashboard for monitoring
+                        }
+                if(t1.Get()>2 && t1.Get()<6)//Good time for 58 inch progression; goes 57.6 inches
+                {
+                    //rightDrive.Set(-1);  //full speed, use in case of emergency
+                    //leftDrive.Set(1);
+
+                    //rightDrive.Set(-.6);  //3/4 speed, use for moat, consider for rockwall, and ramparts
+                    //leftDrive.Set(.6);
+
+                    //rightDrive.Set(-.5);  //1/2 speed, use for rough terrain
+                    //leftDrive.Set(.5);
+
+                    rightDrive.Set(.1725);  //1/4 speed, use for portcullis, and lowbar
+                    leftDrive.Set(-.212);
+
+                    //rightDrive.Set(-.2);
+                    //leftDrive.Set(.2);
+                   // SmartDashboard::PutNumber("t1", t1.Get());
+
+                }
+                else
+                {
+                    //rightDrive.Set(0);
+                    //leftDrive.Set(0);
+                }
+            /*}
+        //};
+    {  //auto starts
+                t2.Reset();
+                t2.Start();
+
+                t1.Reset();
+                t1.Start();
+
+                while(IsAutonomous() && IsEnabled())
+                {
+                    while(t2.Get()<1)
+                            {
+                                 SmartDashboard::PutNumber("t2", t2.Get());  //puts "t2" to smartdashboard for monitoring
+                            }*/
+                if(t1.Get()>6 && t1.Get()<10.75)//Good time for 58 inch progression; goes 57.6 inches
+                {
+                        //rightDrive.Set(-1);  //full speed, use in case of emergency
+                        //leftDrive.Set(1);
+
+                        //rightDrive.Set(-.6);  //3/4 speed, use for moat, consider for rockwall, and ramparts
+                        //leftDrive.Set(.6);
+
+                        //rightDrive.Set(-.5);  //1/2 speed, use for rough terrain
+                        //leftDrive.Set(.5);
+
+                        rightDrive.Set(.178);  //1/4 speed, use for portcullis, and lowbar
+                        //leftDrive.Set(-.212);
+
+                        //rightDrive.Set(-.2);
+                        //leftDrive.Set(.2);
+                       // SmartDashboard::PutNumber("t1", t1.Get());
+
+                }
+                else
+                {
+                        rightDrive.Set(0);
+                        leftDrive.Set(0);
+                }
+            }      //}
+         };
+
+    void RobotInit()
+    {
+        //sample initialization stuff here
+    };
+
+    void OperatorControl()
+    {
+        //_____________________________________________________________________
+        //intake
+    	//ADD CODE TO STOP INTAKE
+        while (IsOperatorControl() && IsEnabled())
+        {
+            if(controller2.GetRawButton(3)==true)
+            {
+                intake.Set(.5);//fuel in
+            }
+            else if(controller2.GetRawButton(2)==true)
+            {
+                intake.Set(-.8);//fuel out - consider for purposes of clearing of fuel for climbing
+            }
+            else //(controller2.GetRawButton(3)==false)
+			{
+                intake.Set(0);
+			}
+            //_____________________________________________________________________
+
+            //Need to sequence the motors for the shooter to get the motor for the shooter up to the desired
+            //speed for consistent shooting. Consider a waiting period of 2 to 4 seconds before starting the belt drive.
+            //The shooter motor needs to be running for a short amount of time before feeding balls via the belt drive.
+            //Sequence shoud look like the following:
+            //   if pressed run shooter motor for 2-4 second to get motor to correct speed
+            //       then start belt drive motor
+            //   else loop back to check for shooter button press
+            //_______________________________________________________________________
+            //shooter
+            if(controller1.GetRawButton(2)==true)//change the button numbers
+            {
+                shooter.Set(.545);
+                Wait (2);
+                beltDrive.Set(.4);
+                Wait (.5);
+                spinFeed.Set(-.5);
+                //Wait(2); //Allow shooter speed to get to maximum
+            }
+            else if(controller1.GetRawButton(3)==true)
+            {
+                //Clear code for the shooting system
+                shooter.Set(-.3);
+                Wait (1);
+                beltDrive.Set(-.5);
+                Wait (.5);
+                spinFeed.Set(.5);
+            }
+            else
+            {
+                shooter.Set(0);
+                beltDrive.Set(0);
+                spinFeed.Set(0);
+            }
+            //_____________________________________________________________________
+            // Need to combine the code above with the code below to properly sequence
+            // the motors.
+            //_____________________________________________________________________
+            //beltDrive
+            /*if(controller1.GetRawButton(10)==true)
+            {
+                //in- we could put this in the 1st "if-else" statement for the shooter
+                // You probably do not need to have a button associated with this. Simply use one button
+                // for both.
+            }
+            else if(controller2.GetRawButton(10)==true)
+            {
+                //out - will we ever need to do this?
+            }
+            else
+            {
+
+            }*/
+            //______________________________________________________________________
+            //______________________________________________________________________
+            //climber
+            if(controller2.GetRawButton(9)==true)
+            {
+                climber.Set(1);
+            }
+            else if(controller2.GetRawButton(10)==true)
+            {
+                climber.Set(-.5);
+            }
+            else
+            {
+                climber.Set(0);
+            }
+            //_____________________________________________________________________
+
+
+
+            //_____________________________________________________________________
+            //leftDrive
+            if(fabs(controller1.GetRawAxis(1)) > 0.2)
+            			/*left joystick, forward & back*/
+            			{
+            			      leftDrive.Set(controller1.GetRawAxis(1) * -.65);
+
+            	        }
+            			else
+            			{
+            			       leftDrive.Set(0);
+            			}
+            		    if(fabs(controller1.GetRawAxis(5)) > 0.2)
+
+            			 {
+            			       rightDrive.Set(controller1.GetRawAxis(5) * .65);
+            			 }
+            			else
+            	         {
+            			       rightDrive.Set(0);
+            			 }
+            //_____________________________________________________________________
+
+            //SmartDashboard::PutNumber("Angle", ahrs->GetAngle());
+
+            Wait(0.005);
+
+        }
+    }
+
+};
+
+START_ROBOT_CLASS(Robot);
